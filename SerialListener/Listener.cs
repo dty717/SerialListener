@@ -115,7 +115,7 @@ namespace SerialListener
                         sendReq(rxbytearray);
                         text.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
-                            text.Text += "上位机指令: "+byteToString(rxbytearray);
+                            text.Text += "下位机回复: " + byteToString(rxbytearray);
                         });
                     }
 
@@ -151,7 +151,7 @@ namespace SerialListener
                         sendRes(rxbytearray);
                         text.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
-                            text.Text+= "下位机回复:" + byteToString(rxbytearray);
+                            text.Text+= "上位机指令:" + byteToString(rxbytearray);
                         });
                     }
 
