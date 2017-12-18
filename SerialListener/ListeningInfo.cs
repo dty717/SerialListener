@@ -10,17 +10,20 @@ using System.Windows.Forms;
 
 namespace SerialListener
 {
-    public partial class Form1 : Form
+    public partial class ListeningInfo : Form
     {
-        public Form1()
+        public ListeningInfo()
         {
             InitializeComponent();
-
         }
-
-        private void Form1_Load(object sender, EventArgs e)
+        
+        private void button1_Click(object sender, EventArgs e)
         {
-            Listener.start(textBox1);
+            Listener.serialInit(textBox1.Text, textBox2.Text);
+            this.Close();
         }
+
+
+        
     }
 }
