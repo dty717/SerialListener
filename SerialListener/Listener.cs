@@ -101,6 +101,10 @@ namespace SerialListener
         {
             while (_continue1)
             {
+                if (MasterIsOn) {
+                    Thread.Sleep(300);
+                    MasterIsOn = false;
+                }
                 try
                 {
                     int numbytes = _serialPort1.BytesToRead;
@@ -133,6 +137,7 @@ namespace SerialListener
                 }
             }
         }
+        static bool MasterIsOn;
         public static void getRes()
         {
             while (_continue2)
@@ -148,6 +153,8 @@ namespace SerialListener
                     }
                     if (rxbytearray.Length != 0)
                     {
+                        MasterIsOn = true;
+                        Thread.Sleep(10);
                         sendRes(rxbytearray);
                         text.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
