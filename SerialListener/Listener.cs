@@ -95,6 +95,16 @@ namespace SerialListener
             return str+ "\r\n";
 
         }
+        public static string byteToString2(byte[] bits)
+        {
+            string str = "";
+            for (var i = 0; i < bits.Length; i++)
+            {
+                str += bits[i]+" ";
+            }
+            return str + "\r\n";
+
+        }
         //1 代表res
         //2 代表req
         public static void getReq()
@@ -120,6 +130,8 @@ namespace SerialListener
                         text.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
                             text.Text += "下位机回复: " + byteToString(rxbytearray);
+                            text.Text += "下位机对应数据: " + byteToString2(rxbytearray);
+
                         });
                     }
 
