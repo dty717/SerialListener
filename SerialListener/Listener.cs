@@ -25,6 +25,16 @@ namespace SerialListener
             _serialPort2.Close();
             _serialPort2 = null;
         }
+
+        internal static void serialCheckInit(string port1, string port2)
+        {
+            check = true;
+            com1 = port1;
+            com2 = port2;
+            //throw new NotImplementedException();
+        }
+
+        private static bool check;
         private static string com1;
         private static string com2;
         private static TextBox text;
@@ -33,9 +43,14 @@ namespace SerialListener
             com1 = text1;
             com2 = text2;
         }
-        
+
+        public static void start2(TextBox  text) {
+
+        }
+
         public static void start(TextBox box){
 
+            
             text = box;
         // Create a new SerialPort object with default settings.
             _serialPort1 = new SerialPort();
@@ -48,8 +63,8 @@ namespace SerialListener
             _serialPort1.StopBits = StopBits.One;
 
             // Set the read/write timeouts
-            _serialPort1.ReadTimeout = 500;
-            _serialPort1.WriteTimeout = 500;
+            _serialPort1.ReadTimeout = 50000;
+            _serialPort1.WriteTimeout = 50000;
 
             _serialPort1.Open();
             _continue1 = true;
@@ -65,17 +80,209 @@ namespace SerialListener
             _serialPort2.StopBits = StopBits.One;
 
             // Set the read/write timeouts
-            _serialPort2.ReadTimeout = 500;
-            _serialPort2.WriteTimeout = 500;
+            _serialPort2.ReadTimeout = 50000;
+            _serialPort2.WriteTimeout = 50000;
 
             _serialPort2.Open();
             _continue2 = true;
-            Thread thread1 = new Thread(new ThreadStart(getReq));
-            Thread thread2 = new Thread(new ThreadStart(getRes));
-            thread1.Start();
-            thread2.Start();
+            if (check)
+            {
+                Thread thread1 = new Thread(new ThreadStart(getCheckOne));
+                Thread thread2 = new Thread(new ThreadStart(getCheckTwo));
+                thread1.Start();
+                thread2.Start();
+                return;
+            }
+            else
+            {
+                Thread thread1 = new Thread(new ThreadStart(getReq));
+                Thread thread2 = new Thread(new ThreadStart(getRes));
+                thread1.Start();
+                thread2.Start();
+            }
+            
 
         }
+
+        public static void getCheckOne() {
+            bool continues=false;
+            while (_continue1)
+            {
+                Thread.Sleep(100);
+                try
+                {
+                    int numbytes = _serialPort1.BytesToRead;
+
+                    if (numbytes < 8)
+                    {
+                        continue;
+                    }
+
+                    byte[] rxbytearray = new byte[8];
+
+                    for (int i = 0; i < 8; i++)
+                    {
+                        
+                        rxbytearray[i] = (byte)_serialPort1.ReadByte();
+                        if (i == 1)
+                        {
+                            if (rxbytearray[i] == 03)
+                                continues = true;
+                        }
+                    }
+
+                    if (continues)
+                    {
+                        continues = false;
+                        rxbytearray = new byte[8];
+                        if (numbytes >= 16)
+                        {
+                            for (int i = 0; i < 8; i++)
+                            {
+
+                                rxbytearray[i] = (byte)_serialPort1.ReadByte();
+                                //if (i == 1)
+                                //{
+                                //    if (rxbytearray[i] == 03)
+                                //        continues = true;
+                                //}
+                            }
+                        }
+                        //if (continues) {
+                        //    continues = false;
+                        //    continue;
+                        //}
+                    }
+                    if (rxbytearray[0] == 0 && rxbytearray[1] == 0)
+                        continue;
+                    if (rxbytearray.Length != 0)
+                    {
+                        if (check1.Count < check2.Count)
+                        {
+                            byte[] checks = check2[check1.Count];
+                            if (checks.Length != rxbytearray.Length)
+                                MessageBox.Show(checks[0] + "" + checks[1] + "错误长度");
+                            if (checks[0] != rxbytearray[0] || checks[1] != rxbytearray[1])
+                            {
+                                MessageBox.Show(checks[0] + "" + checks[1] + "错误头");
+                            }
+                            for (var i = 3; i < checks.Length; i++)
+                            {
+                                if (checks[i] != rxbytearray[i])
+                                {
+                                    MessageBox.Show(checks[0] + "" + checks[1] + "错误内容");
+                                    break;
+                                }
+                            }
+                        }
+                        text.Invoke((MethodInvoker)delegate {
+                            // Running on the UI thread
+                            text.Text += "A:" + byteToString(rxbytearray);
+
+                        });
+                        check1.Add(rxbytearray);
+                    }
+                    //
+                    // MessageBox.Show("??");
+                }
+
+                catch (TimeoutException)
+                {
+                    MessageBox.Show("??");
+                    _continue1 = false;
+                }
+            }
+        }
+        public static int big;
+
+        public static void getCheckTwo()
+        {
+            bool continues = false ;
+            while (_continue1)
+            {
+                Thread.Sleep(100);
+                try
+                {
+                    int numbytes = _serialPort2.BytesToRead;
+                    if (numbytes < 8)
+                    {
+                        continue;
+                    }
+                    byte[] rxbytearray = new byte[8];
+
+
+                    for (int i = 0; i < numbytes; i++)
+                    {
+                        
+                        rxbytearray[i] = (byte)_serialPort2.ReadByte();
+                        if (i == 1)
+                        {
+                            if (rxbytearray[i] == 03)
+                                continues=true;
+                        }
+                        Console.Write(rxbytearray[i]);
+                    }
+                    if (continues) {
+                        continues = false;
+                        rxbytearray = new byte[8];
+                        if (numbytes >= 16)
+                        {
+                            for (int i = 0; i < 8; i++)
+                            {
+
+                                rxbytearray[i] = (byte)_serialPort2.ReadByte();
+                                //if (i == 1)
+                                //{
+                                //    if (rxbytearray[i] == 03)
+                                //        continues = true;
+                                //}
+                            }
+                        }
+                    }
+                    if (rxbytearray[0] == 0 && rxbytearray[1] == 0)
+                        continue;
+                    Console.WriteLine();
+                    if (rxbytearray.Length != 0)
+                    {
+                        if (check2.Count <check1.Count)
+                        {
+                            byte[] checks = check1[check2.Count];
+                            if (checks.Length != rxbytearray.Length)
+                                MessageBox.Show(checks[0] + "" + checks[1] + "错误长度");
+                            if (checks[0] != rxbytearray[0] || checks[1] != rxbytearray[1])
+                            {
+                                MessageBox.Show(checks[0] + "" + checks[1] + "错误头");
+                            }
+                            for (var i = 3; i < checks.Length; i++)
+                            {
+                                if (checks[i] != rxbytearray[i])
+                                {
+                                    MessageBox.Show(checks[0] + "" + checks[1] + "错误内容");
+                                    break;
+                                }
+                            }
+                        }
+                        text.Invoke((MethodInvoker)delegate {
+                            // Running on the UI thread
+                            text.Text += "B:" + byteToString(rxbytearray);
+
+                        });
+                        check2.Add(rxbytearray);
+                    }
+                    //
+                    // MessageBox.Show("??");
+                }
+
+                catch (TimeoutException)
+                {
+                    MessageBox.Show("??");
+                    _continue1 = false;
+                }
+            }
+        }
+        public static List<byte[]> check1=new List<byte[]>();
+        public static List<byte[]> check2= new List<byte[]>();
+
         public static string x16(int bit) {
             if (bit < 10)
                 return bit + "";
@@ -165,11 +372,14 @@ namespace SerialListener
                     }
                     if (rxbytearray.Length != 0)
                     {
+                       
                         MasterIsOn = true;
                         Thread.Sleep(10);
                         sendRes(rxbytearray);
                         text.Invoke((MethodInvoker)delegate {
                             // Running on the UI thread
+                            if (text.Text.Length > 10240)
+                                text.Text = "";
                             text.Text+= "上位机指令:" + byteToString(rxbytearray);
                         });
                     }
