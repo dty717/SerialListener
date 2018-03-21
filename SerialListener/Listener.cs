@@ -26,15 +26,15 @@ namespace SerialListener
             _serialPort2 = null;
         }
 
-        internal static void serialCheckInit(string port1, string port2)
+        internal static void serialCheckInit(string port1, string port2,int i)
         {
-            check = true;
+            check = i;
             com1 = port1;
             com2 = port2;
             //throw new NotImplementedException();
         }
 
-        private static bool check;
+        private static int check;
         private static string com1;
         private static string com2;
         private static TextBox text;
@@ -82,16 +82,24 @@ namespace SerialListener
             // Set the read/write timeouts
             _serialPort2.ReadTimeout = 50000;
             _serialPort2.WriteTimeout = 50000;
-
-            _serialPort2.Open();
+            try
+            {
+                _serialPort2.Open();
+            }
+            catch (Exception) {
+            }
             _continue2 = true;
-            if (check)
+            if (check == 1)
             {
                 Thread thread1 = new Thread(new ThreadStart(getCheckOne));
                 Thread thread2 = new Thread(new ThreadStart(getCheckTwo));
                 thread1.Start();
                 thread2.Start();
                 return;
+            }
+            else if (check==2) {
+                Thread thread1 = new Thread(new ThreadStart(post));
+                thread1.Start();
             }
             else
             {
@@ -101,6 +109,54 @@ namespace SerialListener
                 thread2.Start();
             }
             
+
+        }
+        public static void post() {
+            var _continue = true;
+            test test = new test();
+            while (_continue)
+            {
+                Thread.Sleep(1000);
+                try
+                {
+                    int numbytes = _serialPort1.BytesToRead;
+                    byte[] rxbytearray = new byte[numbytes];
+
+                    for (int i = 0; i < numbytes; i++)
+                    {
+                        rxbytearray[i] = (byte)_serialPort1.ReadByte();
+                    }
+                    if (rxbytearray.Length != 0)
+                    {
+                        var str=test.usfulByte(rxbytearray);
+                        MessageBox.Show(str);
+                        //sendReq(rxbytearray);
+                        text.Invoke((MethodInvoker)delegate {
+                            // Running on the UI thread
+                            text.Text = str;
+
+                        });
+                    }
+
+
+                    //
+                    // MessageBox.Show("??");
+
+                }
+
+                catch (TimeoutException)
+                {
+                    MessageBox.Show("??");
+
+                    _continue1 = false;
+                }
+            }
+
+            text.Invoke((MethodInvoker)delegate {
+                // Running on the UI thread
+                text.Text += "A:" + byteToString(null);
+
+            });
 
         }
 

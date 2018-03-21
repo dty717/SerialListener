@@ -25,7 +25,13 @@ namespace SerialListener
 
         private void button2_Click(object sender, EventArgs e)
         {
-            Listener.serialCheckInit(textBox1.Text, textBox2.Text);
+            Listener.serialCheckInit(textBox1.Text, textBox2.Text,1);
+            this.Close();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            Listener.serialCheckInit(textBox1.Text, textBox2.Text, 2);
             this.Close();
         }
     }
