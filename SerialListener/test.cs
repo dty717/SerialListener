@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Microsoft.CSharp;
+using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,7 +31,7 @@ namespace SerialListener
             string[] lines = System.IO.File.ReadAllLines(@"test.txt");
             var start = false;
             var end = false;
-            //int times = 0;
+            int line = 0;
             var str = "";
             for (var i = 0; i < lines.Length; i++)
             {
@@ -47,6 +50,7 @@ namespace SerialListener
                     if (lines[i].Trim() == "")
                     {
                         end = true;
+                        line = i;
                         break;
                     }
                     else
@@ -57,13 +61,194 @@ namespace SerialListener
 
             }
             // Display the file contents by using a foreach loop.
-
             infos = str.Substring(str.IndexOf(":") + 1).Split(',').Select(email => email.Trim()).ToArray();
-        }
-        public static String[] infos;
-        int[] data = new int[126];
+            data = new int[infos.Length];
 
-        int[] dataSize = { 5, 9, 9, 9, 5, 9, 9, 9, 2, 16, 2, 16 };
+            start = false;
+            end = false;
+            str = "";
+            for (var i = line; i < lines.Length; i++)
+            {
+                if (!start)
+                    if (lines[i].IndexOf("两位数据:") != -1)
+                    {
+                        start = true;
+
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                if (!end)
+                {
+                    if (lines[i].Trim() == "")
+                    {
+                        end = true;
+                        line = i;
+                        break;
+                    }
+                    else
+                    {
+                        str += lines[i].Trim();
+                    }
+                }
+            }
+            String[]arrange = str.Substring(str.IndexOf(":") + 1).Split(',').Select(email => email.Trim()).ToArray();
+
+            for (var i = 0; i < arrange.Length; i++) {
+                Console.WriteLine(arrange[i]);
+                if (arrange[i][0] == '[')
+                {
+                    list.Add(int.Parse(arrange[i].Substring(1)) * 2 - 1);
+                }
+                else if (arrange[i][0] == '(')
+                {
+                    list.Add(int.Parse(arrange[i].Substring(1)) * 2);
+                }
+                else if (arrange[i][arrange[i].Length - 1] == ')')
+                {
+                    list.Add(int.Parse(arrange[i].Substring(0, arrange[i].Length - 1)) * 2);
+                }
+                else if (arrange[i][arrange[i].Length - 1] == ']')
+                {
+                    list.Add(int.Parse(arrange[i].Substring(0, arrange[i].Length - 1)) * 2+1);
+                }
+
+            }
+
+
+            start = false;
+            end = false;
+            str = "";
+
+
+            for (var i = line; i < lines.Length; i++)
+            {
+                if (!start)
+                {
+                    if (lines[i].IndexOf("赋值方式:") != -1)
+                    {
+                        start = true;
+
+                    }
+                        continue;
+                }
+                if (!end)
+                {
+                    if (lines[i].Trim() == "//*")
+                    {
+                        end = true;
+                        line = i;
+                        break;
+                    }
+                    else
+                    {
+                        str += lines[i].Trim()+"\r\n";
+                    }
+                }
+            }
+
+            start = false;
+            end = false;
+
+            for (var i = line; i < lines.Length; i++)
+            {
+                if (!start)
+                {
+                    if (lines[i].IndexOf("比率:") != -1)
+                    {
+                        start = true;
+                    }
+                    continue;
+                }
+                if (!end)
+                {
+                    if (lines[i].Trim() == "//*")
+                    {
+                        end = true;
+                        line = i;
+                        break;
+                    }
+                    else
+                    {
+                        str += lines[i].Trim() + "\r\n";
+                    }
+                }
+            }
+
+
+            string sourceCode = @"
+                public class ModelClass {
+                    " + str+"}";
+            Console.WriteLine(sourceCode);
+            var compParms = new CompilerParameters
+            {
+                GenerateExecutable = false,
+                GenerateInMemory = true
+            };
+            var csProvider = new CSharpCodeProvider();
+            CompilerResults compilerResults =
+                csProvider.CompileAssemblyFromSource(compParms, sourceCode);
+            typeInstance =
+                compilerResults.CompiledAssembly.CreateInstance("ModelClass");
+            modelMethod = typeInstance.GetType().GetMethod("Model");
+            rateMethod = typeInstance.GetType().GetMethod("Rate");
+
+            start = false;
+            end = false;
+
+            str = "";
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (!start)
+                    if (lines[i].IndexOf("数据大小:") != -1)
+                    {
+                        start = true;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                if (!end)
+                {
+                    if (lines[i].Trim() == "")
+                    {
+                        end = true;
+                        line = i;
+                        break;
+                    }
+                    else
+                    {
+                        str += lines[i].Trim();
+                    }
+                }
+
+            }
+            dataSize = str.Substring(str.IndexOf(":") + 1).Split(',').Select(email => int.Parse(email.Trim())).ToArray();
+
+        }
+        public static object typeInstance;
+        public static MethodInfo modelMethod;
+        public static MethodInfo rateMethod;
+
+        public static String[] infos;
+        int[] data;
+        List<int> list = new List<int>();
+        public bool arrange(int m) {
+            for (var i = 0; i < list.Count; i+=2) {
+                if (between(list[i + 1],list[i],m)){
+                    return true;
+                }
+            }
+            return false;
+        }
+        public bool between(int a,int b ,int x ) {
+            return (2*x - a) * (2*x - b) < 0;
+        }
+
+
+
+        int[] dataSize;
         public String usfulByte(byte[] bytes)
         {
             String nowTime = DateTime.Now.ToString();
@@ -72,14 +257,14 @@ namespace SerialListener
                 return null;
             int p = 0, m = 0;
 
-
             for (var i = 3; i < bytes.Length - 2; i += 2)
             {
-                if ((i >= 3 && i < 20) || (i >= 29 && i < 47) || (i >= 55 && i < 70))
+                //三位数据:[3, 20),[29,47),[55,70)
+
+                if (arrange(i))
                 {
                     data[p++] = readTwo(bytes[i], bytes[i + 1]);
                     //Console.WriteLine("名称:"+infos[p-1]+"    数值:"+data[p]+"    信息位:" + (p ) + "   操作位:" + 2+"   数据位:"+(i-3)/2);
-                    Console.WriteLine(data[p - 1]);
                 }
                 else
                 {
@@ -138,7 +323,7 @@ namespace SerialListener
 
             for (var i = 0; i < data.Length; i++)
             {
-                res += infos[i] + ":" + (double)data[i] / rate(i) + "," + model(i, data[i]) + "\r\n";
+                res += infos[i] + ":" + (double)data[i] /(int)rateMethod.Invoke(typeInstance, new object[] { i }) + "," + (string)modelMethod.Invoke(typeInstance, new object[] { i, data[i]}) + "\r\n";
                 Console.WriteLine(data[i]);
             }
             state = data[89];
@@ -156,7 +341,7 @@ namespace SerialListener
             return 1;
         }
 
-        public string model(int i, int data)
+        public String model(int i, int data)
         {
             if (i < 9 || (i > 40 && i < 50) || (i > 83 && i < 87))
             {
