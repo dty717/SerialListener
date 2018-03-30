@@ -33,13 +33,13 @@ namespace SerialListener.data
                 return _instance;
             }
 
-            public bool IsConnect()
+            public bool IsConnect(string server)
             {
                 if (Connection == null)
                 {
                     if (string.IsNullOrEmpty(databaseName))
                         return false;
-                    string connstring = string.Format("Server=localhost; database={0}; UID=root; password=root", databaseName);
+                    string connstring = string.Format("Server={0}; database={1}; UID=root; password=root",server, databaseName);
                     connection = new MySqlConnection(connstring);
                     connection.Open();
                 }

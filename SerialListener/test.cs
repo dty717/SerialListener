@@ -1,4 +1,6 @@
 ﻿using Microsoft.CSharp;
+using MySql.Data.MySqlClient;
+using SerialListener.data;
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
@@ -11,6 +13,9 @@ namespace SerialListener
 {
     class test
     {
+        DBConnection dB =DBConnection.Instance();
+
+        List<function> functions = new List<function>();        
         private bool checkHead(byte[] get)
         {
             //01 03 4C
@@ -24,10 +29,18 @@ namespace SerialListener
             }
             return true;
         }
-
+        MySqlCommand cmd;
         int[] rates = { };
         public test()
         {
+            dB.DatabaseName = "modbus";
+            dB.IsConnect("localhost");
+            MySqlConnection conn = dB.Connection;
+
+            cmd = conn.CreateCommand();
+            
+            Console.WriteLine();
+
             string[] lines = System.IO.File.ReadAllLines(@"test.txt");
             var start = false;
             var end = false;
@@ -64,62 +77,113 @@ namespace SerialListener
             infos = str.Substring(str.IndexOf(":") + 1).Split(',').Select(email => email.Trim()).ToArray();
             data = new int[infos.Length];
 
-            start = false;
-            end = false;
-            str = "";
+            int len=0;
             for (var i = line; i < lines.Length; i++)
             {
-                if (!start)
-                    if (lines[i].IndexOf("两位数据:") != -1)
-                    {
-                        start = true;
+                if (lines[i].IndexOf("读取方式数量:") != -1)
+                {
+                    len = int.Parse(lines[i].Substring(lines[i].IndexOf(":") + 1));
+                    line = i;
+                    break;
+                }
+                        
+            }
+            str = "";
+            for (var k = 0; k < len; k++) {
+                start = false;
 
-                    }
-                    else
+                end = false;
+                var strArrange = "";
+                var pa = 0;
+                for (var i = line; i < lines.Length; i++)
+                {
+                    if (!start)
+                        if (lines[i].IndexOf("数据:") != -1)
+                        {
+                            pa = int.Parse(lines[i].Trim().Substring(0, lines[i].IndexOf("位")));
+                            start = true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    if (!end)
                     {
+                        if (lines[i].Trim() == "")
+                        {
+                            end = true;
+                            line = i;
+                            break;
+                        }
+                        else
+                        {
+                            strArrange += lines[i].Trim();
+                        }
+                    }
+                }
+                String[] arrange = strArrange.Substring(strArrange.IndexOf(":") + 1).Split(',').Select(email => email.Trim()).ToArray();
+
+                List<int> list=new List<int>();
+                for (var i = 0; i < arrange.Length; i++)
+                {
+                    if (arrange[i][0] == '[')
+                    {
+                        list.Add(int.Parse(arrange[i].Substring(1)) * 2 - 1);
+                    }
+                    else if (arrange[i][0] == '(')
+                    {
+                        list.Add(int.Parse(arrange[i].Substring(1)) * 2);
+                    }
+                    else if (arrange[i][arrange[i].Length - 1] == ')')
+                    {
+                        list.Add(int.Parse(arrange[i].Substring(0, arrange[i].Length - 1)) * 2);
+                    }
+                    else if (arrange[i][arrange[i].Length - 1] == ']')
+                    {
+                        list.Add(int.Parse(arrange[i].Substring(0, arrange[i].Length - 1)) * 2 + 1);
+                    }
+
+
+                }
+
+                start = false;
+                end = false;
+                for (var i = line; i < lines.Length; i++)
+                {
+                    if (!start)
+                    {
+                        if (lines[i].IndexOf("读取方式:") != -1)
+                        {
+                            start = true;
+
+                        }
                         continue;
                     }
-                if (!end)
-                {
-                    if (lines[i].Trim() == "")
+                    if (!end)
                     {
-                        end = true;
-                        line = i;
-                        break;
+                        if (lines[i].Trim() == "//*")
+                        {
+                            end = true;
+                            line = i;
+                            break;
+                        }
+                        else
+                        {
+                            str += lines[i].Trim() + "\r\n";
+                        }
                     }
-                    else
-                    {
-                        str += lines[i].Trim();
-                    }
                 }
+                functions.Add(new function("_"+k,list,pa));
+                //functions.
             }
-            String[]arrange = str.Substring(str.IndexOf(":") + 1).Split(',').Select(email => email.Trim()).ToArray();
+            
 
-            for (var i = 0; i < arrange.Length; i++) {
-                Console.WriteLine(arrange[i]);
-                if (arrange[i][0] == '[')
-                {
-                    list.Add(int.Parse(arrange[i].Substring(1)) * 2 - 1);
-                }
-                else if (arrange[i][0] == '(')
-                {
-                    list.Add(int.Parse(arrange[i].Substring(1)) * 2);
-                }
-                else if (arrange[i][arrange[i].Length - 1] == ')')
-                {
-                    list.Add(int.Parse(arrange[i].Substring(0, arrange[i].Length - 1)) * 2);
-                }
-                else if (arrange[i][arrange[i].Length - 1] == ']')
-                {
-                    list.Add(int.Parse(arrange[i].Substring(0, arrange[i].Length - 1)) * 2+1);
-                }
-
-            }
+            
 
 
             start = false;
             end = false;
-            str = "";
+            //str = "";
 
 
             for (var i = line; i < lines.Length; i++)
@@ -225,7 +289,7 @@ namespace SerialListener
 
             }
             dataSize = str.Substring(str.IndexOf(":") + 1).Split(',').Select(email => int.Parse(email.Trim())).ToArray();
-
+            Console.WriteLine("?" + infos.Length);
         }
         public static object typeInstance;
         public static MethodInfo modelMethod;
@@ -242,6 +306,16 @@ namespace SerialListener
             }
             return false;
         }
+        public bool arrange(List<int> list, int m) {
+            for (var i = 0; i < list.Count; i += 2)
+            {
+                if (between(list[i + 1], list[i], m))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         public bool between(int a,int b ,int x ) {
             return (2*x - a) * (2*x - b) < 0;
         }
@@ -253,20 +327,29 @@ namespace SerialListener
         {
             String nowTime = DateTime.Now.ToString();
 
-            if (bytes == null || bytes.Length < 80 || !checkHead(bytes))
-                return null;
+
+            
             int p = 0, m = 0;
 
-            for (var i = 3; i < bytes.Length - 2; i += 2)
+            for (var i = 3; i < bytes.Length - 2; i ++)
             {
+                bool flag = true;
                 //三位数据:[3, 20),[29,47),[55,70)
+                for (var j = 0; j < functions.Count; j++) {
+                    if (arrange(functions[j].arrange, i)) {
+                        object[] objs = new object[functions[j].param];
+                        for (var n = 0; n < objs.Length; n++) {
+                            objs[n] = bytes[i + n];
+                        }
+                        data[p++] =(int) typeInstance.GetType().GetMethod(functions[j].functionName).Invoke(typeInstance, objs);
+                        flag = false;
+                        i += functions[j].param - 1;
+                        break;
+                    }
 
-                if (arrange(i))
-                {
-                    data[p++] = readTwo(bytes[i], bytes[i + 1]);
-                    //Console.WriteLine("名称:"+infos[p-1]+"    数值:"+data[p]+"    信息位:" + (p ) + "   操作位:" + 2+"   数据位:"+(i-3)/2);
                 }
-                else
+                
+                if(flag)
                 {
                     int[] ints = readOneByOne(bytes[i], bytes[i + 1]);
                     if (m == dataSize.Length)
@@ -291,7 +374,6 @@ namespace SerialListener
                 }
 
             }
-
             //DataTable deviceTable = (DataTable)Static.get("deviceTable");
             //DataTable exceptionTable = (DataTable)Static.get("exceptionTable");
 
@@ -320,15 +402,29 @@ namespace SerialListener
             //    deviceTable.Rows[i].SetField(4, model(i, data[i]));
             //}
             String res = "";
+            Console.WriteLine("?" + data.Length);
 
             for (var i = 0; i < data.Length; i++)
             {
                 res += infos[i] + ":" + (double)data[i] /(int)rateMethod.Invoke(typeInstance, new object[] { i }) + "," + (string)modelMethod.Invoke(typeInstance, new object[] { i, data[i]}) + "\r\n";
-                Console.WriteLine(data[i]);
+                Console.WriteLine("?"+data[i]);
             }
-            state = data[89];
-            sample = data[84];
-            tube = data[85];
+            state = data[6];
+            //sample = data[84];
+            //tube = data[85];
+            cmd.CommandText = "insert into test (A) values ("+(double)data[6]/ (int)rateMethod.Invoke(typeInstance, new object[] { 6 }) + ")";
+            
+            //cmd.Parameters.Add("?person", MySqlDbType.VarChar).Value = "myname";
+            //cmd.Parameters.Add("?address", MySqlDbType.VarChar).Value = "myaddress";
+            //var reader = cmd.ExecuteReader();
+            //while (reader.Read())
+            //{
+            //    string someStringFromColumnZero = reader.GetString(0);
+            //    string someStringFromColumnOne = reader.GetString(1);
+            //    Console.WriteLine(someStringFromColumnZero + "," + someStringFromColumnOne);
+            //}
+            cmd.ExecuteNonQuery();
+            
             return res;
         }
         public static int state;
@@ -401,7 +497,6 @@ namespace SerialListener
                 {
                     case 0: return "未滴定";
                 }
-
             }
             else if (i == 87)
             {
@@ -409,7 +504,6 @@ namespace SerialListener
                 {
                     case 0: return "不搅拌";
                 }
-
             }
             else if (i == 88)
             {
@@ -448,6 +542,6 @@ namespace SerialListener
             return val;
         }
 
-    }
 
+    }
 }
