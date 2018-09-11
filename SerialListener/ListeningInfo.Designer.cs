@@ -62,7 +62,7 @@
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(100, 21);
             this.textBox1.TabIndex = 2;
-            this.textBox1.Text = "com2";
+            this.textBox1.Text = "com3";
             // 
             // textBox2
             // 
@@ -70,7 +70,7 @@
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(100, 21);
             this.textBox2.TabIndex = 3;
-            this.textBox2.Text = "com4";
+            this.textBox2.Text = "com1";
             // 
             // button1
             // 
@@ -109,8 +109,9 @@
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
             this.button4.TabIndex = 7;
-            this.button4.Text = "待定";
+            this.button4.Text = "验证";
             this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
             // 
             // ListeningInfo
             // 

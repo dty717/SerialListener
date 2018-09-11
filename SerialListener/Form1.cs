@@ -18,7 +18,6 @@ namespace SerialListener
         public Form1()
         {
             InitializeComponent();
-        
         }
 
         RemoteDataBase dB = RemoteDataBase.Instance();
@@ -34,9 +33,6 @@ namespace SerialListener
         private void timer1_Tick(object sender, EventArgs e)
         {
             return;
-
-
-
 
             dB.IsConnect("192.168.1.166");
             {
