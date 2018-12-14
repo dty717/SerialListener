@@ -323,6 +323,36 @@ namespace SerialListener
 
 
         int[] dataSize;
+        public double AnalysisD(byte[] buf, int len)
+        {
+            int e1 = 0;//数符
+                        //  char e2 = 0;//阶符
+            int steps = 0;//阶
+            int temp = 0;
+            double end = 0.0;
+
+            temp = buf[1] & 0x80;
+            e1 = (temp == 0) ? 1 : (-1);
+            temp = buf[1] & 0x40;
+            //  e2 = (temp == 0)?1:(-1);
+            if (temp == 0)
+            {
+                steps = buf[1] & 0x3F;
+            }
+            else
+            {
+                steps = buf[1] & 0x3F;
+                temp = steps - 1;
+                temp = (~temp) & 0xFF;
+                steps = temp & 0x3F;
+                steps = -1 * steps;
+                //    steps = -1 * ((~((buf[1] & 0x3F) - 1)) & 0x3F);
+            }
+            end = Math.Pow(10, steps);
+            end = (double)(e1 * 1.0 * ((buf[2] << 8) | buf[3]) * end);
+
+            return end;
+        }
         public String usfulByte(byte[] bytes)
         {
             String nowTime = DateTime.Now.ToString();

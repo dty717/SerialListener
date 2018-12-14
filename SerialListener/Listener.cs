@@ -1,4 +1,5 @@
-﻿using System;
+using SerialListener.TCP;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
@@ -88,9 +89,12 @@ namespace SerialListener
                 case "databit": DataBits = Convert.ToInt16(value.Trim()); break;
                 case "paritybit": Parity = getParity(value.Trim()); break;
                 case "stopbit": StopBits = getStopBit(value.Trim()); break;
+                case "ip": serverIp = value.Trim();break;
+                case "port": serverPort = Convert.ToInt16(value.Trim()); break;
             }
-
         }
+        static String serverIp;
+        static int serverPort;
         static int BaudRate;
         static int DataBits;
         static Parity Parity;
@@ -231,6 +235,15 @@ namespace SerialListener
                 Thread thread1 = new Thread(new ThreadStart(checkReq));
                 thread1.Start();
             }
+            else if (check == 4)
+            {
+                Thread thread1 = new Thread(new ThreadStart(post_4));
+                thread1.Start();
+            }else if (check == 5)
+            {
+                Thread thread1 = new Thread(new ThreadStart(TCPConnect));
+                thread1.Start();
+            }
 
         }
         public static void checkReq()
@@ -240,10 +253,12 @@ namespace SerialListener
                 {0x04,0x05,0x00,0x00,0x00,0x00,0xCD,0x9F},
                 {0x05,0x05,0x00,0x00,0x00,0x00,0xCC,0x4E},
                 {0x06,0x05,0x00,0x00,0x00,0x00,0xCC,0x7D},
-                {0x07,0x05,0x00,0x00,0x00,0x00,0xCD,0xAC}
+                {0x07,0x05,0x00,0x00,0x00,0x00,0xCD,0xAC},
+                {0x08,0x05,0x00,0x00,0x00,0x00,0xCD,0x53},
+                {0x09,0x05,0x00,0x00,0x00,0x00,0xCC,0x82}
             };
 
-            for (var k = 2; k < 8; k++)
+            for (var k = 2; k < 10; k++)
             {
                 if (MasterIsOn)
                 {
@@ -318,6 +333,139 @@ namespace SerialListener
             }
 
         }
+
+
+
+        static bool MessageReceived(byte[] data)
+        {
+            text.Invoke((MethodInvoker)delegate
+            {
+                if (text.Text.Length > 1024)
+                    text.Text = "";
+                // Running on the UI thread
+                text.Text += Encoding.UTF8.GetString(data) + "\r\n";
+            });
+            return true;
+        }
+
+        static bool ServerConnected()
+        {
+            Console.WriteLine("Server connected");
+            return true;
+        }
+
+        static bool ServerDisconnected()
+        {
+            Console.WriteLine("Server disconnected");
+            return true;
+        }
+
+        public static void TCPConnect()
+        {
+            WatsonTcpClient client = new WatsonTcpClient(serverIp, serverPort, ServerConnected, ServerDisconnected, MessageReceived, true);
+
+            var _continue = true;
+            while (_continue)
+            {
+                try
+                {
+                    int numbytes = _serialPort1.BytesToRead;
+                    byte[] rxbytearray = new byte[numbytes];
+
+                    for (int i = 0; i < numbytes; i++)
+                    {
+                        rxbytearray[i] = (byte)_serialPort1.ReadByte();
+                    }
+                    if (rxbytearray.Length != 0)
+                    {
+                        if (rxbytearray[0] == (byte)01 && rxbytearray[1] != (byte)0x03)
+                        {
+                            client.Send(Encoding.UTF8.GetBytes("data:" + BitConverter.ToString(rxbytearray).Replace("-", " ")));
+                            text.Invoke((MethodInvoker)delegate
+                            {
+                                if (text.Text.Length > 1024)
+                                    text.Text = "";
+                                // Running on the UI thread
+                                text.Text += BitConverter.ToString(rxbytearray).Replace("-", " ") + "\r\n";
+                            });
+                        }
+                    }
+
+                }
+
+                catch (TimeoutException)
+                {
+                    MessageBox.Show("??");
+
+                    _continue1 = false;
+                }
+            }
+
+            text.Invoke((MethodInvoker)delegate
+            {
+                // Running on the UI thread
+                text.Text += "A:" + byteToString(null);
+
+            });
+
+        }
+        public static void post_4()
+        {
+            var _continue = true;
+            test test = new test();
+            while (_continue)
+            {
+                //Thread.Sleep(1000);
+                try
+                {
+                    int numbytes = _serialPort1.BytesToRead;
+                    byte[] rxbytearray = new byte[numbytes];
+
+                    for (int i = 0; i < numbytes; i++)
+                    {
+                        rxbytearray[i] = (byte)_serialPort1.ReadByte();
+                    }
+                    if (rxbytearray.Length != 0)
+                    {
+                        byte[] m = new byte[rxbytearray.Length-2];
+                        for (var i = 0; i < m.Length; i++) {
+                            m[i] = rxbytearray[i + 2];
+                        }
+                        var str = test.AnalysisD(m, m.Length);
+                        //MessageBox.Show(str);
+                        //sendReq(rxbytearray);
+                        text.Invoke((MethodInvoker)delegate
+                        {
+                            if (text.Text.Length > 1024)
+                                text.Text = "";
+                            // Running on the UI thread
+                            text.Text += str+"\r\n";
+                        });
+                    }
+
+
+                    //
+                    // MessageBox.Show("??");
+
+                }
+
+                catch (TimeoutException)
+                {
+                    MessageBox.Show("??");
+
+                    _continue1 = false;
+                }
+            }
+
+            text.Invoke((MethodInvoker)delegate
+            {
+                // Running on the UI thread
+                text.Text += "A:" + byteToString(null);
+
+            });
+
+        }
+
         public static void post()
         {
             var _continue = true;

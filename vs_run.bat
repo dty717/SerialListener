@@ -1,0 +1,1 @@
+cd C:\Users\xqy\source\repos\SerialListener && "C:\Windows\Microsoft.NET\Framework\v4.0.30319\msbuild.exe"  /p:configuration=debug /p:Platform="Any CPU"
