@@ -18,7 +18,11 @@ namespace SerialListener
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new ListeningInfo());
-            Application.Run(new Form1());
+            if (!Listener.isNewForm1)
+                Application.Run(new Form1());
+            else {
+                Application.Run(new Form2());
+            }
             Listener.close();
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -64,6 +64,25 @@ namespace SerialListener
         private void button6_Click(object sender, EventArgs e)
         {
             Listener.serialCheckInit(comboBox1.Text, comboBox2.Text, 5);
+            this.Close();
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            Listener.serialCheckInit(comboBox1.Text, comboBox2.Text, 6);
+            this.Close();
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            Listener.serialCheckInit(comboBox1.Text, comboBox2.Text, 7);
+            Listener.isNewForm1=true;
+            this.Close();
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            Listener.serialCheckInit(comboBox1.Text, comboBox2.Text, 8);
             this.Close();
         }
     }
